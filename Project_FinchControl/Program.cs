@@ -30,11 +30,13 @@ namespace Project_FinchControl
             TURNLEFT,
             LEDON,
             LEDOFF,
+            GETLIGHT,
+            GETTEMP,
             DONE
         }
         static void Main(string[] args)
         {
-            SetTheme();
+            DefaultTheme();
 
             DisplayWelcomeScreen();
 
@@ -46,20 +48,6 @@ namespace Project_FinchControl
         /// <summary>
         /// display welcome screen
         /// </summary>
-
-        static void SetTheme()
-        {
-            string dataPath = @"Data\Theme.txt";
-            string forgroundColorString;
-            ConsoleColor forgroundColor;
-
-            forgroundColorString = File.ReadAllText(dataPath);
-
-            Enum.TryParse(forgroundColorString, out forgroundColor);
-
-            Console.ForegroundColor = forgroundColor;
-        }
-
         static void DisplayWelcomeScreen()
         {
             Console.Clear();
@@ -199,8 +187,29 @@ namespace Project_FinchControl
             } while (!quitApplication);
 
         }
+        #region Background, Foreground, And Its Methods
+        static void DefaultTheme()
+        {
+            string dataPath = @"Data\Theme.txt";
+            string forgroundColorString;
+            ConsoleColor forgroundColor;
 
-        #region Talent Show And It's Methods
+            forgroundColorString = File.ReadAllText(dataPath);
+
+            Enum.TryParse(forgroundColorString, out forgroundColor);
+
+            Console.ForegroundColor = forgroundColor;
+        }
+        static void UpdateTheme()
+        {
+            Console.WriteLine("Enter The color you would like the text to be.");
+            Console.WriteLine("Color Options: Red, Green, Yellow, White, Cyan, Black, Blue,");
+            Console.WriteLine("DarkBlue, DarkCyan, DarkGrey, DarkGreen, DarkMagenta,");
+            Console.WriteLine("DarkRed, DarkYellow, Gray, and Magenta. ");            
+        }
+        #endregion
+
+        #region Talent Show And Its Methods
         static void DisplayTalentShow(Finch finchRobot)
         {
             string TalentChoice;
@@ -953,7 +962,7 @@ namespace Project_FinchControl
 
             for (int index = 0; index < numberofDataPoints; index++)
             {
-                Lightlevels[index] = finchRobot.getLeftLightSensor();
+                Lightlevels[index] = finchRobot.getLeftLightSensor() + finchRobot.getRightLightSensor() / (2);
                 int milliSeconds = ((int)(DataPointFrequency * 1000));
                 finchRobot.wait(milliSeconds);
 
@@ -973,9 +982,7 @@ namespace Project_FinchControl
                 Console.WriteLine($"Light Level {index + 1}: {LightLevels[index]}");
             }
             DisplayContinuePrompt();
-        }
-        
-        
+        }       
         #endregion
 
         #region Alarm System And Its Methods
@@ -1025,7 +1032,6 @@ namespace Project_FinchControl
 
             DisplayContinuePrompt();
         }
-
         static string DisplayGetAlarmType()
         {
             bool ValidInput = false;
@@ -1055,7 +1061,6 @@ namespace Project_FinchControl
             
             return AlarmType;
         }
-
         static int DisplayGetMaxSeconds()
         {
             int MaxSeconds;
@@ -1076,7 +1081,6 @@ namespace Project_FinchControl
 
             return MaxSeconds;
         }
-
         static bool MonitorCurrentLightLevel(Finch finchrobot, double threshold, int maxseconds)
         {
             bool thresholdExceeded = false;
@@ -1102,7 +1106,6 @@ namespace Project_FinchControl
 
             return thresholdExceeded;
         }
-
         static bool MonitorCurrentTemperature(Finch finchrobot, double maxthreshold, int maxseconds)
         {
             bool thresholdExceeded = false;
@@ -1128,10 +1131,8 @@ namespace Project_FinchControl
 
             return thresholdExceeded;
         }
-
         static double DisplayGetThreshold(Finch finchRobot, string alarmType)
         {
-            double minthreshold = 0;
             double maxthreshold = 0;
             bool ValidInput = false;
             
@@ -1270,16 +1271,45 @@ namespace Project_FinchControl
             CommandParameters.motorSpeed = 0;
             CommandParameters.ledBrightness = 0;
             CommandParameters.waitSeconds = 0;
+            bool ValidResponse = false;
+            string userResponse;
             DisplayScreenHeader("Command Parameters");
 
-            Console.Write("Enter Motor Speed [1-255]:");
-            CommandParameters.motorSpeed = int.Parse(Console.ReadLine());
+            do
+            {
+                Console.Write("Enter Motor Speed [1-255]:");
+                userResponse = Console.ReadLine();
+                ValidResponse = int.TryParse(userResponse, out CommandParameters.motorSpeed);
+                if (!ValidResponse)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please Enter a Valid Value");
+                }
+            } while (!ValidResponse);
 
-            Console.Write("Enter LED Brightness [1-255]:");
-            CommandParameters.ledBrightness = int.Parse(Console.ReadLine());
+            do
+            {                
+                Console.Write("Enter LED Brightness [1-255]:");
+                userResponse = Console.ReadLine();
+                ValidResponse = int.TryParse(userResponse, out CommandParameters.ledBrightness);
+                if (!ValidResponse)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please Enter a Valid Value");
+                }
+            } while (!ValidResponse);
 
-            Console.Write("Enter Seconds to wait for command:");
-            CommandParameters.waitSeconds = int.Parse(Console.ReadLine());
+            do
+            {
+                Console.Write("Enter Seconds to wait for command:");
+                userResponse = Console.ReadLine();
+                ValidResponse = int.TryParse(userResponse, out CommandParameters.waitSeconds);
+                if (!ValidResponse)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Please Enter a Valid Value");
+                }
+            } while (!ValidResponse);          
 
             DisplayContinuePrompt();
             return CommandParameters;
@@ -1345,6 +1375,14 @@ namespace Project_FinchControl
                         break;
 
                     case "LEDOFF":
+                        Enum.TryParse(userResponse, out command);
+                        commands.Add(command);
+                        break;
+                    case "GETLIGHT":
+                        Enum.TryParse(userResponse, out command);
+                        commands.Add(command);
+                        break;
+                    case "GETTEMP":
                         Enum.TryParse(userResponse, out command);
                         commands.Add(command);
                         break;
@@ -1426,6 +1464,12 @@ namespace Project_FinchControl
                         break;
                     case Command.LEDOFF:
                         finchRobot.setLED(0, 0, 0);
+                        break;
+                    case Command.GETLIGHT:
+                        Console.WriteLine($"Light Levels:{finchRobot.getLeftLightSensor() + finchRobot.getRightLightSensor() / (2)}");
+                        break;
+                    case Command.GETTEMP:
+                        Console.WriteLine($"Temperature:{finchRobot.getTemperature() * (9 / 5) + 32}\u00B0F");
                         break;
                     case Command.DONE:
                         break;
